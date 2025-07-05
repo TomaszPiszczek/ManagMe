@@ -25,8 +25,9 @@ public class UserManagment {
     @Column(length = 255, nullable = false)
     private String password;
 
-    @Column(name = "role_id")
-    private UUID roleId;
+    @ManyToOne
+    @JoinColumn(name = "role_id")
+    private Role role;
 
     @Column(name = "creation_timestamp")
     private LocalDateTime creationTimestamp;
@@ -59,4 +60,5 @@ public class UserManagment {
     protected void onUpdate() {
         modificationTimestamp = LocalDateTime.now();
     }
+
 }

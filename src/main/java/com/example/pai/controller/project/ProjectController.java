@@ -17,9 +17,19 @@ public class ProjectController {
 
     private final ProjectService projectService;
 
-    @GetMapping
-    public ResponseEntity<List<ProjectDto.ProjectResponse>> getAllProjects() {
-        return ResponseEntity.ok(projectService.getAllProjects());
+    @GetMapping("/active")
+    public ResponseEntity<List<ProjectDto.ProjectResponse>> getActiveProjects() {
+        return ResponseEntity.ok(projectService.getActiveProjects());
+    }
+
+    @GetMapping("/inactive")
+    public ResponseEntity<List<ProjectDto.ProjectResponse>> getInactiveProjects() {
+        return ResponseEntity.ok(projectService.getInactiveProjects());
+    }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<ProjectDto.ProjectResponse>> getProjectsForUser(@PathVariable UUID userId) {
+        return ResponseEntity.ok(projectService.getProjectsForUser(userId));
     }
 
     @GetMapping("/{id}")
@@ -49,5 +59,40 @@ public class ProjectController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
+    }
+
+    @PostMapping("/{projectId}/assign/{userId}")
+    public ResponseEntity<Void> assignUserToProject(@PathVariable UUID projectId, @PathVariable UUID userId) {
+        if (projectService.assignUserToProject(projectId, userId)) {
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.badRequest().build();
+    }
+
+    @DeleteMapping("/{projectId}/assign/{userId}")
+    public ResponseEntity<Void> removeUserFromProject(@PathVariable UUID projectId, @PathVariable UUID userId) {
+        if (projectService.removeUserFromProject(projectId, userId)) {
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+
+    @PutMapping("/{id}/status/{status}")
+    public ResponseEntity<Void> setProjectStatus(@PathVariable UUID id, @PathVariable String status) {
+        if (projectService.setProjectStatus(id, status)) {
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/{id}/assigned-users")
+    public ResponseEntity<List<ProjectDto.AssignedUser>> getAssignedUsers(@PathVariable UUID id) {
+        return ResponseEntity.ok(projectService.getAssignedUsers(id));
+    }
+
+    @GetMapping("/status/{status}")
+    public ResponseEntity<List<ProjectDto.ProjectResponse>> getProjectsByStatus(@PathVariable String status) {
+        return ResponseEntity.ok(projectService.getProjectsByStatus(status));
     }
 }

@@ -26,6 +26,15 @@ public class Project {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @ManyToOne
+    @JoinColumn(name = "owner_id")
+    private UserManagment owner;
+
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private ProjectStatus status = ProjectStatus.ACTIVE;
+
     @Column(name = "creation_timestamp")
     private LocalDateTime creationTimestamp;
 
@@ -41,5 +50,9 @@ public class Project {
     @PreUpdate
     protected void onUpdate() {
         modificationTimestamp = LocalDateTime.now();
+    }
+
+    public enum ProjectStatus {
+        ACTIVE, INACTIVE, FINISHED
     }
 }

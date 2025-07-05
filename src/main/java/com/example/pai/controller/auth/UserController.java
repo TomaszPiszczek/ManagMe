@@ -2,6 +2,7 @@ package com.example.pai.controller.auth;
 
 
 
+import com.example.pai.controller.user.dto.UserDto;
 import com.example.pai.dao.model.UserManagment;
 import com.example.pai.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -19,8 +20,8 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    public ResponseEntity<List<UserManagment>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<List<UserDto.UserResponse>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsersDto());
     }
 
     @GetMapping("/{id}")

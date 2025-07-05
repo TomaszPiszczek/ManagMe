@@ -16,6 +16,7 @@ export interface AuthResponse {
     email: string;
     name: string;
     userId: string;
+    role: string;
 }
 
 export const login = async (credentials: LoginRequest): Promise<AuthResponse> => {

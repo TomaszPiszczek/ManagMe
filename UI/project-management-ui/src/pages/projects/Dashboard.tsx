@@ -1,255 +1,176 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
-import * as Yup from 'yup';
+import { useUser } from '../../context/UserContext';
+import UsersList from '../../components/users/UsersList';
+import ProjectsView from '../../components/projects/ProjectsView';
 
-interface Project {
-    id: string;
-    name: string;
-    description: string;
-    creationTimestamp: string;
-    modificationTimestamp: string;
-}
-
-interface ProjectFormValues {
-    name: string;
-    description: string;
-}
+type ViewType = 'users' | 'projects';
 
 const Dashboard = () => {
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [modalMode, setModalMode] = useState<'create' | 'update'>('create');
+    const [currentView, setCurrentView] = useState<ViewType>('projects');
+    const [resetKey, setResetKey] = useState(0);
+    const { user, logout } = useUser();
     const navigate = useNavigate();
 
-    // Setup axios interceptor for JWT
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            navigate('/');
-            return;
-        }
-
-        axios.interceptors.request.use(
-            (config) => {
-                config.headers.Authorization = `Bearer ${token}`;
-                return config;
-            },
-            (error) => {
-                return Promise.reject(error);
-            }
-        );
-
-        fetchProjects();
-    }, [navigate]);
-
-    const fetchProjects = async () => {
-        try {
-            const response = await axios.get('/api/projects');
-            setProjects(response.data);
-        } catch (error) {
-            console.error('Error fetching projects:', error);
-            if (axios.isAxiosError(error) && error.response?.status === 401) {
-                // Token expired or invalid
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                navigate('/');
-            }
-        }
-    };
-
-    const openCreateModal = () => {
-        setModalMode('create');
-        setSelectedProject(null);
-        setIsModalOpen(true);
-    };
-
-    const openUpdateModal = (project: Project) => {
-        setModalMode('update');
-        setSelectedProject(project);
-        setIsModalOpen(true);
-    };
-
-    const closeModal = () => {
-        setIsModalOpen(false);
-    };
-
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        logout();
         navigate('/');
     };
 
-    const deleteProject = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this project?')) {
-            try {
-                await axios.delete(`/api/projects/${id}`);
-                setProjects(projects.filter(project => project.id !== id));
-            } catch (error) {
-                console.error('Error deleting project:', error);
-            }
+    const renderContent = () => {
+        switch (currentView) {
+            case 'users':
+                return <UsersList />;
+            case 'projects':
+                return <ProjectsView key={resetKey} />;
+            default:
+                return <ProjectsView key={resetKey} />;
         }
     };
-
-    const projectSchema = Yup.object().shape({
-        name: Yup.string().required('Project name is required'),
-        description: Yup.string(),
-    });
-
-    const handleSubmitProject = async (values: ProjectFormValues) => {
-        try {
-            if (modalMode === 'create') {
-                const response = await axios.post('/api/projects', values);
-                setProjects([...projects, response.data]);
-            } else if (modalMode === 'update' && selectedProject) {
-                const response = await axios.put(`/api/projects/${selectedProject.id}`, values);
-                setProjects(projects.map(p => p.id === selectedProject.id ? response.data : p));
-            }
-            closeModal();
-        } catch (error) {
-            console.error('Error submitting project:', error);
-        }
-    };
-
-    const initialValues: ProjectFormValues = {
-        name: selectedProject?.name || '',
-        description: selectedProject?.description || '',
-    };
-
-    // Get user info from localStorage
-    const userString = localStorage.getItem('user');
-    const user = userString ? JSON.parse(userString) : { name: 'User' };
 
     return (
-        <div className="min-h-screen bg-gray-100 flex">
-            {/* Sidebar */}
-            <div className="w-64 bg-white shadow-md">
-                <div className="p-6 border-b">
-                    <h2 className="text-xl font-semibold">Project Management</h2>
-                    <p className="text-gray-600">Welcome, {user.name}</p>
-                </div>
-                <div className="p-4">
-                    <button
-                        onClick={openCreateModal}
-                        className="w-full mb-4 flex items-center justify-center p-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+        <div style={{minHeight: '100vh', backgroundColor: '#111827', display: 'flex'}}>
+            <div style={{width: '15%', minWidth: '150px', backgroundColor: '#111827', display: 'flex', flexDirection: 'column'}}>
+                <div style={{padding: '24px', borderBottom: '1px solid #374151'}}>
+                    <button 
+                        onClick={() => {
+                            setCurrentView('projects');
+                            setResetKey(prev => prev + 1);
+                        }}
+                        style={{
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '12px',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            width: '100%',
+                            textAlign: 'left'
+                        }}
                     >
-                        Create Project
+                        <svg style={{width: '40px', height: '40px', color: '#10b981'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h2 style={{fontSize: '20px', fontWeight: '600', color: 'white'}}>Manage Me</h2>
                     </button>
+                </div>
+                
+                <nav style={{paddingTop: '16px', paddingBottom: '16px', flex: 1}}>
+                    <button
+                        onClick={() => setCurrentView('projects')}
+                        style={{
+                            width: '100%',
+                            textAlign: 'left',
+                            padding: '12px 16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            background: currentView === 'projects' 
+                                ? 'linear-gradient(to right, #10b981, #374151)' 
+                                : 'transparent',
+                            color: currentView === 'projects' ? 'white' : '#d1d5db',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (currentView !== 'projects') {
+                                (e.target as HTMLElement).style.backgroundColor = '#1f2937';
+                                (e.target as HTMLElement).style.color = 'white';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (currentView !== 'projects') {
+                                (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                                (e.target as HTMLElement).style.color = '#d1d5db';
+                            }
+                        }}
+                    >
+                        <svg style={{width: '20px', height: '20px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <span>Projects</span>
+                    </button>
+                    {user?.role === 'ADMIN' && (
+                        <button
+                            onClick={() => setCurrentView('users')}
+                            style={{
+                                width: '100%',
+                                textAlign: 'left',
+                                padding: '12px 16px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                background: currentView === 'users' 
+                                    ? 'linear-gradient(to right, #10b981, #374151)' 
+                                    : 'transparent',
+                                color: currentView === 'users' ? 'white' : '#d1d5db',
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                                if (currentView !== 'users') {
+                                    (e.target as HTMLElement).style.backgroundColor = '#1f2937';
+                                    (e.target as HTMLElement).style.color = 'white';
+                                }
+                            }}
+                            onMouseLeave={(e) => {
+                                if (currentView !== 'users') {
+                                    (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                                    (e.target as HTMLElement).style.color = '#d1d5db';
+                                }
+                            }}
+                        >
+                            <svg style={{width: '20px', height: '20px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                            </svg>
+                            <span>Team</span>
+                        </button>
+                    )}
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center justify-center p-3 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                        style={{
+                            width: '100%',
+                            textAlign: 'left',
+                            padding: '12px 16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            background: 'transparent',
+                            color: '#fca5a5',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                            (e.target as HTMLElement).style.backgroundColor = '#7f1d1d';
+                            (e.target as HTMLElement).style.color = 'white';
+                        }}
+                        onMouseLeave={(e) => {
+                            (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                            (e.target as HTMLElement).style.color = '#fca5a5';
+                        }}
                     >
-                        Logout
+                        <svg style={{width: '20px', height: '20px'}} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        <span>Logout</span>
                     </button>
-                </div>
+                </nav>
             </div>
 
-            {/* Main content */}
-            <div className="flex-1 p-8">
-                <h1 className="text-2xl font-semibold mb-6">My Projects</h1>
-
-                {projects.length === 0 ? (
-                    <div className="bg-white rounded-lg shadow-md p-6 text-center">
-                        <p className="text-gray-600">You don't have any projects yet.</p>
-                        <button
-                            onClick={openCreateModal}
-                            className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
-                        >
-                            Create your first project
-                        </button>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {projects.map((project) => (
-                            <div key={project.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-                                <div className="p-6">
-                                    <h3 className="text-xl font-semibold mb-2">{project.name}</h3>
-                                    <p className="text-gray-600 mb-4">{project.description}</p>
-                                    <div className="text-sm text-gray-500">
-                                        <p>Created: {new Date(project.creationTimestamp).toLocaleDateString()}</p>
-                                        <p>Last modified: {new Date(project.modificationTimestamp).toLocaleDateString()}</p>
-                                    </div>
-                                </div>
-                                <div className="bg-gray-50 px-6 py-3 flex justify-end space-x-2">
-                                    <button
-                                        onClick={() => openUpdateModal(project)}
-                                        className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                                    >
-                                        Edit
-                                    </button>
-                                    <button
-                                        onClick={() => deleteProject(project.id)}
-                                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                                    >
-                                        Delete
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Modal for Create/Update */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
-                        <div className="p-6">
-                            <h2 className="text-2xl font-semibold mb-4">
-                                {modalMode === 'create' ? 'Create New Project' : 'Update Project'}
-                            </h2>
-                            <Formik
-                                initialValues={initialValues}
-                                validationSchema={projectSchema}
-                                onSubmit={handleSubmitProject}
-                                enableReinitialize
-                            >
-                                {({ isSubmitting }) => (
-                                    <Form>
-                                        <div className="mb-4">
-                                            <label className="block text-gray-700 mb-2">Project Name</label>
-                                            <Field
-                                                type="text"
-                                                name="name"
-                                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                                            />
-                                            <ErrorMessage name="name" component="div" className="text-red-500 text-sm mt-1" />
-                                        </div>
-                                        <div className="mb-6">
-                                            <label className="block text-gray-700 mb-2">Description</label>
-                                            <Field
-                                                as="textarea"
-                                                name="description"
-                                                rows={4}
-                                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                                            />
-                                            <ErrorMessage name="description" component="div" className="text-red-500 text-sm mt-1" />
-                                        </div>
-                                        <div className="flex justify-end space-x-3">
-                                            <button
-                                                type="button"
-                                                onClick={closeModal}
-                                                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
-                                            >
-                                                Cancel
-                                            </button>
-                                            <button
-                                                type="submit"
-                                                disabled={isSubmitting}
-                                                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
-                                            >
-                                                {modalMode === 'create' ? 'Create' : 'Update'}
-                                            </button>
-                                        </div>
-                                    </Form>
-                                )}
-                            </Formik>
-                        </div>
+            <div style={{flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#f3f4f6'}}>
+                <div style={{height: '64px', backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 24px'}}>
+                    <div style={{color: '#374151'}}>
+                        Welcome back, {user?.name || 'User'}
                     </div>
                 </div>
-            )}
+                
+                <div style={{flex: 1, padding: '32px'}}>
+                    {renderContent()}
+                </div>
+            </div>
         </div>
     );
 };

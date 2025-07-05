@@ -38,5 +38,6 @@ public class AuthDto {
         private String email;
         private String name;
         private UUID userId;
+        private String role;
     }
 }

@@ -1,7 +1,8 @@
 package com.example.pai.service;
 
+import com.example.pai.controller.user.dto.UserDto;
 import com.example.pai.dao.model.UserManagment;
-import com.example.pai.dao.reposirtory.UserRepository;
+import com.example.pai.dao.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +22,12 @@ public class UserService {
 
     public List<UserManagment> getAllUsers() {
         return userRepository.findAll();
+    }
+
+    public List<UserDto.UserResponse> getAllUsersDto() {
+        return userRepository.findAll().stream()
+                .map(this::mapToUserResponse)
+                .collect(Collectors.toList());
     }
 
     public Optional<UserManagment> getUserById(UUID id) {
@@ -60,8 +68,8 @@ public class UserService {
                         existingUserManagment.setPassword(passwordEncoder.encode(userManagmentDetails.getPassword()));
                     }
 
-                    if (userManagmentDetails.getRoleId() != null) {
-                        existingUserManagment.setRoleId(userManagmentDetails.getRoleId());
+                    if (userManagmentDetails.getRole() != null) {
+                        existingUserManagment.setRole(userManagmentDetails.getRole());
                     }
 
                     if (userManagmentDetails.getActivated() != null) {
@@ -96,5 +104,20 @@ public class UserService {
                     return true;
                 })
                 .orElse(false);
+    }
+
+    private UserDto.UserResponse mapToUserResponse(UserManagment user) {
+        return UserDto.UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .name(user.getName())
+                .role(UserDto.RoleDto.builder()
+                        .id(user.getRole().getId())
+                        .name(user.getRole().getName())
+                        .build())
+                .activated(user.getActivated())
+                .creationTimestamp(user.getCreationTimestamp())
+                .modificationTimestamp(user.getModificationTimestamp())
+                .build();
     }
 }

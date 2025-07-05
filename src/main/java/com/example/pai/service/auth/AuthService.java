@@ -2,10 +2,12 @@ package com.example.pai.service.auth;
 
 import com.example.pai.controller.auth.dto.AuthDto;
 import com.example.pai.dao.model.UserManagment;
-import com.example.pai.dao.reposirtory.UserRepository;
+import com.example.pai.dao.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -51,6 +53,7 @@ public class AuthService {
                 .email(savedUserManagment.getEmail())
                 .name(savedUserManagment.getName())
                 .userId(savedUserManagment.getId())
+                .role(savedUserManagment.getRole().getName())
                 .build();
     }
 
@@ -78,6 +81,18 @@ public class AuthService {
                 .email(userManagment.getEmail())
                 .name(userManagment.getName())
                 .userId(userManagment.getId())
+                .role(userManagment.getRole().getName())
                 .build();
+    }
+
+    public UserManagment getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new RuntimeException("No authenticated user found");
+        }
+        
+        String email = authentication.getName();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
     }
 }

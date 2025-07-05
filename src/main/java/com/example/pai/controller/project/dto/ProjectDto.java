@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public class ProjectDto {
@@ -18,6 +19,7 @@ public class ProjectDto {
     public static class ProjectRequest {
         private String name;
         private String description;
+        private String status;
     }
 
     @Data
@@ -28,8 +30,13 @@ public class ProjectDto {
         private UUID id;
         private String name;
         private String description;
+        private String status;
+        private UUID ownerId;
+        private String ownerName;
         private LocalDateTime creationTimestamp;
         private LocalDateTime modificationTimestamp;
+        private List<AssignedUser> assignedUsers;
+        private Integer memberCount;
     }
 
     @Data
@@ -39,5 +46,18 @@ public class ProjectDto {
     public static class ProjectUpdateRequest {
         private String name;
         private String description;
+        private String status;
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class AssignedUser {
+        private UUID id;
+        private String name;
+        private String email;
+        private String role;
+        private LocalDateTime assignmentTimestamp;
     }
 }

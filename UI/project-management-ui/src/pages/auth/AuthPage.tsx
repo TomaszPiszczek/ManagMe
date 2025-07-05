@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import axios from 'axios';
+import { useUser } from '../../context/UserContext';
+import './AuthPage.css';
 
 interface LoginFormValues {
     email: string;
@@ -15,11 +16,12 @@ interface RegisterFormValues extends LoginFormValues {
 }
 
 const AuthPage = () => {
-    const [isLogin, setIsLogin] = useState(true);
+    const [isRegisterMode, setIsRegisterMode] = useState(false);
     const navigate = useNavigate();
+    const { setUser } = useUser();
 
     const toggleForm = () => {
-        setIsLogin(!isLogin);
+        setIsRegisterMode(!isRegisterMode);
     };
 
     const initialLoginValues: LoginFormValues = {
@@ -48,11 +50,14 @@ const AuthPage = () => {
         try {
             const response = await axios.post('/api/auth/login', values);
             localStorage.setItem('token', response.data.token);
-            localStorage.setItem('user', JSON.stringify({
+            const userData = {
+                id: response.data.userId,
                 email: response.data.email,
                 name: response.data.name,
-                userId: response.data.userId
-            }));
+                role: response.data.role
+            };
+            localStorage.setItem('user', JSON.stringify(userData));
+            setUser(userData);
             navigate('/dashboard');
         } catch (error) {
             console.error('Login error:', error);
@@ -64,11 +69,14 @@ const AuthPage = () => {
         try {
             const response = await axios.post('/api/auth/register', values);
             localStorage.setItem('token', response.data.token);
-            localStorage.setItem('user', JSON.stringify({
+            const userData = {
+                id: response.data.userId,
                 email: response.data.email,
                 name: response.data.name,
-                userId: response.data.userId
-            }));
+                role: response.data.role
+            };
+            localStorage.setItem('user', JSON.stringify(userData));
+            setUser(userData);
             navigate('/dashboard');
         } catch (error) {
             console.error('Registration error:', error);
@@ -77,142 +85,124 @@ const AuthPage = () => {
     };
 
     return (
-        <div className="flex h-screen w-full">
-            {/* Left side with form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
-                <div className="w-full max-w-md">
-                    <AnimatePresence mode="wait">
-                        {isLogin ? (
-                            <motion.div
-                                key="login"
-                                initial={{ opacity: 0, x: -50 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: 50 }}
-                                transition={{ duration: 0.3 }}
-                                className="bg-white shadow-md rounded-lg p-8"
+        <div className={`auth-container ${isRegisterMode ? 'register-mode' : ''}`}>
+            {/* Form Panel */}
+            <div className="auth-panel">
+                <div className="auth-form-wrapper">
+                    {!isRegisterMode ? (
+                        <div className="auth-form">
+                            <h2 className="auth-title">Login</h2>
+                            <Formik
+                                initialValues={initialLoginValues}
+                                validationSchema={loginSchema}
+                                onSubmit={handleLogin}
                             >
-                                <h2 className="text-3xl font-semibold text-center text-gray-800 mb-6">Login</h2>
-                                <Formik
-                                    initialValues={initialLoginValues}
-                                    validationSchema={loginSchema}
-                                    onSubmit={handleLogin}
+                                {({ isSubmitting }) => (
+                                    <Form>
+                                        <div className="form-group">
+                                            <Field
+                                                type="email"
+                                                name="email"
+                                                placeholder="Enter your email"
+                                                className="form-input"
+                                            />
+                                            <ErrorMessage name="email" component="div" className="form-error" />
+                                        </div>
+                                        <div className="form-group">
+                                            <Field
+                                                type="password"
+                                                name="password"
+                                                placeholder="Enter your password"
+                                                className="form-input"
+                                            />
+                                            <ErrorMessage name="password" component="div" className="form-error" />
+                                        </div>
+                                        <button
+                                            type="submit"
+                                            disabled={isSubmitting}
+                                            className="form-button"
+                                        >
+                                            Login
+                                        </button>
+                                    </Form>
+                                )}
+                            </Formik>
+                            <p className="form-footer">
+                                Don't have an account?{' '}
+                                <button
+                                    onClick={toggleForm}
+                                    className="form-link"
                                 >
-                                    {({ isSubmitting }) => (
-                                        <Form>
-                                            <div className="mb-4">
-                                                <Field
-                                                    type="email"
-                                                    name="email"
-                                                    placeholder="Enter your email"
-                                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                                                />
-                                                <ErrorMessage name="email" component="div" className="text-red-500 text-sm mt-1" />
-                                            </div>
-                                            <div className="mb-6">
-                                                <Field
-                                                    type="password"
-                                                    name="password"
-                                                    placeholder="Enter your password"
-                                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                                                />
-                                                <ErrorMessage name="password" component="div" className="text-red-500 text-sm mt-1" />
-                                            </div>
-                                            <button
-                                                type="submit"
-                                                disabled={isSubmitting}
-                                                className="w-full py-3 bg-purple-600 text-white font-semibold rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-opacity-50"
-                                            >
-                                                Login
-                                            </button>
-                                        </Form>
-                                    )}
-                                </Formik>
-                                <p className="text-center mt-6 text-gray-600">
-                                    Don't have an account?{' '}
-                                    <button
-                                        onClick={toggleForm}
-                                        className="text-purple-600 font-semibold focus:outline-none"
-                                    >
-                                        Signup now
-                                    </button>
-                                </p>
-                            </motion.div>
-                        ) : (
-                            <motion.div
-                                key="register"
-                                initial={{ opacity: 0, x: 50 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -50 }}
-                                transition={{ duration: 0.3 }}
-                                className="bg-white shadow-md rounded-lg p-8"
+                                    Signup now
+                                </button>
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="auth-form">
+                            <h2 className="auth-title">Register</h2>
+                            <Formik
+                                initialValues={initialRegisterValues}
+                                validationSchema={registerSchema}
+                                onSubmit={handleRegister}
                             >
-                                <h2 className="text-3xl font-semibold text-center text-gray-800 mb-6">Register</h2>
-                                <Formik
-                                    initialValues={initialRegisterValues}
-                                    validationSchema={registerSchema}
-                                    onSubmit={handleRegister}
+                                {({ isSubmitting }) => (
+                                    <Form>
+                                        <div className="form-group">
+                                            <Field
+                                                type="text"
+                                                name="name"
+                                                placeholder="Enter your name"
+                                                className="form-input"
+                                            />
+                                            <ErrorMessage name="name" component="div" className="form-error" />
+                                        </div>
+                                        <div className="form-group">
+                                            <Field
+                                                type="email"
+                                                name="email"
+                                                placeholder="Enter your email"
+                                                className="form-input"
+                                            />
+                                            <ErrorMessage name="email" component="div" className="form-error" />
+                                        </div>
+                                        <div className="form-group">
+                                            <Field
+                                                type="password"
+                                                name="password"
+                                                placeholder="Enter your password"
+                                                className="form-input"
+                                            />
+                                            <ErrorMessage name="password" component="div" className="form-error" />
+                                        </div>
+                                        <button
+                                            type="submit"
+                                            disabled={isSubmitting}
+                                            className="form-button"
+                                        >
+                                            Register
+                                        </button>
+                                    </Form>
+                                )}
+                            </Formik>
+                            <p className="form-footer">
+                                Already have an account?{' '}
+                                <button
+                                    onClick={toggleForm}
+                                    className="form-link"
                                 >
-                                    {({ isSubmitting }) => (
-                                        <Form>
-                                            <div className="mb-4">
-                                                <Field
-                                                    type="text"
-                                                    name="name"
-                                                    placeholder="Enter your name"
-                                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                                                />
-                                                <ErrorMessage name="name" component="div" className="text-red-500 text-sm mt-1" />
-                                            </div>
-                                            <div className="mb-4">
-                                                <Field
-                                                    type="email"
-                                                    name="email"
-                                                    placeholder="Enter your email"
-                                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                                                />
-                                                <ErrorMessage name="email" component="div" className="text-red-500 text-sm mt-1" />
-                                            </div>
-                                            <div className="mb-6">
-                                                <Field
-                                                    type="password"
-                                                    name="password"
-                                                    placeholder="Enter your password"
-                                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                                                />
-                                                <ErrorMessage name="password" component="div" className="text-red-500 text-sm mt-1" />
-                                            </div>
-                                            <button
-                                                type="submit"
-                                                disabled={isSubmitting}
-                                                className="w-full py-3 bg-purple-600 text-white font-semibold rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-opacity-50"
-                                            >
-                                                Register
-                                            </button>
-                                        </Form>
-                                    )}
-                                </Formik>
-                                <p className="text-center mt-6 text-gray-600">
-                                    Already have an account?{' '}
-                                    <button
-                                        onClick={toggleForm}
-                                        className="text-purple-600 font-semibold focus:outline-none"
-                                    >
-                                        Login
-                                    </button>
-                                </p>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                                    Login
+                                </button>
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Right side with gradient and message */}
-            <div className="hidden lg:block lg:w-1/2 bg-gradient-to-r from-purple-600 to-blue-500 flex items-center justify-center">
-                <div className="text-center px-8">
-                    <h1 className="text-4xl font-bold text-white mb-4">
-                        Every new friend is a new adventure.
-                    </h1>
-                    <p className="text-xl text-white">Let's get connected</p>
+            {/* Gradient Panel */}
+            <div className="gradient-panel">
+                <div className="gradient-content">
+                    <h1 className="gradient-title">Every new friend is a new adventure.</h1>
+                    <p className="gradient-subtitle">Let's get connected</p>
                 </div>
             </div>
         </div>

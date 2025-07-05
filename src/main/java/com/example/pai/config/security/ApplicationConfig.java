@@ -1,7 +1,7 @@
 package com.example.pai.config.security;
 
 
-import com.example.pai.dao.reposirtory.UserRepository;
+import com.example.pai.dao.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
